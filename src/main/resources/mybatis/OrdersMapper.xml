@@ -10,4 +10,12 @@
         join category c on c.category_id=p.category_id
         order by o.order_id desc
     </select>
+    <insert id="ordersInsert" parameterType="OrdersDto">
+        <selectKey keyProperty="order_id" resultType="int" order="BEFORE">
+            select seq_orders.nextval from dual
+        </selectKey>
+        insert into orders values(#{order_id},#{store_id},#{order_date},#{total_supply_amount},#{commission_amount})
+    </insert>
+
+
 </mapper>

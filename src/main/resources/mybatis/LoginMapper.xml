@@ -4,7 +4,10 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.demo.mapper.LoginMapper">
     <select id="login" parameterType="map" resultType="LoginDto">
-        select user_id, login_id, role from login
-        where login_id=#{login_id} and password=#{password}
+        select l.user_id, l.login_id, l.role,
+               o.owner_id, o.store_id, o.owner_name, o.owner_phone
+        from login l
+        left join owner o on o.user_id = l.user_id
+        where l.login_id=#{login_id} and l.password=#{password}
     </select>
 </mapper>

@@ -13,4 +13,9 @@ public class LoginDto {
     private String password;
     private int role;
 
+    private int owner_id;
+    private int store_id;
+    private String owner_name;
+    private String owner_phone;
+
 }

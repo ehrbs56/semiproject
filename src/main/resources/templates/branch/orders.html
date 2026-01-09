@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-<th:block th:replace="~{fragments/hqLayout::hqLayout(~{this::header},~{this::body})}">
+<th:block th:replace="~{fragments/branchLayout::branchLayout(~{this::header},~{this::body})}">
     <div th:fragment="header">
         <h2>발주요청</h2>
         <p>본사 재고에서 상품을 선택하여 발주합니다</p>
@@ -21,9 +21,12 @@
                         <td th:text="${product.hq_quantity}"></td>
                         <td th:text="${product.hq_supply_price}"></td>
                         <td>
-                            <input type="number" class="qty" min="0" th:data-product-id="${product.product_id}">
+                            <input type="number" class="qty" min="0"
+                                   th:data-product-id="${product.product_id}"
+                                   th:data-hq-quantity="${product.hq_quantity}">
                             <button type="button" class="addBtn" th:data-product-id="${product.product_id}">등록</button>
                         </td>
+                        <td class="error" th:data-product-id="${product.product_id}"></td>
                     </tr>
                 </table>
             </div><br>
@@ -31,28 +34,143 @@
         <div>
             <div class="header">
                 <h3>등록한 발주</h3><hr><br>
-                <button type="button">발주하기</button>
             </div>
+
             <div class="body">
-                <table>
+                <table id="orderListTable">
+                    <thead>
                     <tr>
                         <th>요청일</th><th>카테고리</th><th>상품명</th><th>수량</th><th>총가격</th><th>관리</th>
                     </tr>
+                    </thead>
+                    <tbody id="orderListBody">
+                    </tbody>
                 </table>
+                <input type="hidden" name="total_supply_amount" id="totalSupplyAmount">
+                <button type="submit" id="submitBtn">발주하기</button>
             </div>
         </div>
         <script>
+            document.getElementById("submitBtn").addEventListener("click",function () {
+                const orderListBody = document.getElementById("orderListBody");
+                const rows = orderListBody.querySelectorAll("tr");
+                if(rows.length === 0) {
+                    alert("등록된 발주가 없습니다.");
+                    return;
+                }
+                const order_items = [];
+                let total_supply_amount = 0;
+                rows.forEach(tr => {
+                    const product_id = tr.dataset.productId;
+                    const order_qty = parseInt(tr.querySelector(".order-qty").innerText);
+                    const order_price = parseInt(tr.querySelector(".order-price").innerText.replace(/,/g,''));
+                    total_supply_amount += order_price;
+                    order_items.push({
+                        product_id: parseInt(product_id),
+                        order_qty : order_qty
+                    });
+                });
+                console.log("보낼 JSON:", JSON.stringify({
+                    total_supply_amount: total_supply_amount,
+                    order_item: order_items
+                }));
+                fetch("/branch/orders", {
+                    method: "POST",
+                    headers: {"Content-Type":"application/json"},
+                    credentials: "same-origin",
+                    body: JSON.stringify({
+                        total_supply_amount: total_supply_amount,
+                        order_item: order_items
+                    })
+                })
+                    .then(resp=>{
+                        console.log(resp.status, resp.statusText);
+                        return resp.json();
+                    })
+                    .then(data => {
+                        if(data.result === "success") {
+                            alert("발주가 완료되었습니다.")
+                            window.location.href="/branch/orders";
+                        }else {
+                            alert("에러 발생 :"+data.msg)
+                            window.location.href="/branch/orders";
+                        }
+                    })
+            })
+            const orderListTable = document.getElementById("orderListTable");
             document.querySelectorAll(".addBtn").forEach(button=>{
                 button.addEventListener("click",function () {
-                    const product_id=button.dataset.product_id;
+                    const product_id=button.dataset.productId;
+                    const qtyInput = document.querySelector(`.qty[data-product-id="${product_id}"]`);
+                    const quantity = qtyInput ? parseInt(qtyInput.value) : 0;
+                    const error = document.querySelector(`.error[data-product-id="${product_id}"]`);
+                    if(!qtyInput || isNaN(quantity) || quantity <= 0) {
+                        if(error) {
+                            error.innerHTML="발주 수량을 입력하세요";
+                            error.style.color="red";
+                            error.style.fontSize="0.7em";
+                        }
+                        return
+                    }
+                    const hqQuantity = parseInt(qtyInput.dataset.hqQuantity);
+                    if(quantity > hqQuantity) {
+                        if(error) {
+                            error.innerHTML=`발주 수량은 본사 재고(${hqQuantity})를 초과할 수 없습니다`;
+                            error.style.color="red";
+                            error.style.fontSize="0.7em";
+                        }
+                        return;
+                    }
+
+                    if(error) {
+                        error.innerHTML="";
+                    }
                     fetch(`/branch/orders/add?product_id=${product_id}`)
-                        .then(resp=>resp.json())
-                        .then(data=>{
-
+                        .then(resp=>{
+                            console.log("resp status:", resp.status);
+                            return resp.json();
                         })
+                        .then(data=>{
+                            console.log("받은 data:", data);
+                            const totalPrice = data.hq_supply_price * quantity
+                            const today=new Date().toISOString().slice(0,10);
 
+                            const orderListBody = document.getElementById("orderListBody");
 
+                            const existRow = orderListBody.querySelector(
+                                `tr[data-product-id="${product_id}"]`
+                            );
+                            if(existRow) {
+                                const qtyTd = existRow.querySelector(".order-qty")
+                                const priceTd = existRow.querySelector(".order-price");
+                                const newQty = parseInt(qtyTd.innerText) + quantity;
+                                qtyTd.innerText=newQty;
+                                priceTd.innerText=(newQty * data.hq_supply_price).toLocaleString();
+                                qtyInput.value="";
+                                return
+                            }
+                            const tr = document.createElement("tr");
+                            tr.setAttribute("data-product-id",product_id);
+                            tr.innerHTML=`
+                                <td>${today}</td>
+                                <td>${data.category_name}</td>
+                                <td>${data.product_name}</td>
+                                <td class="order-qty">${quantity}</td>
+                                <td class="order-price">${totalPrice.toLocaleString()}</td>
+                                <td>
+                                    <button type="button" class="deleteBtn">삭제</button>
+                                </td>
+                            `;
+                            orderListBody.appendChild(tr);
+                            qtyInput.value="";
+                        })
                 })
+            })
+            orderListTable.addEventListener("click",function (e) {
+                if(e.target && e.target.matches(".deleteBtn")) {
+                    const tr = e.target.closest("tr");
+                    if(tr) tr.remove();
+                }
             })
         </script>
     </div>

@@ -4,12 +4,26 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.demo.mapper.ProductMapper">
     <select id="productList" resultType="ProductListDto">
-        select p.product_id, c.category_name, p.product_name, p.hq_supply_price, sum(hq.hq_quantity) as hq_quantity
-        from product p
-        join category c on p.category_id=c.category_id
-        join product_batch b on p.product_id=b.product_id
-        join hq_inventory hq on hq.batch_id=b.batch_id
-        group by p.product_id, c.category_name, p.product_name, p.hq_supply_price
-        order by p.product_name
+        SELECT
+        p.product_id,
+        c.category_name,
+        p.product_name,
+        p.hq_supply_price,
+        SUM(hq.hq_quantity) AS hq_quantity
+        FROM product p
+        JOIN category c ON p.category_id = c.category_id
+        JOIN product_batch b ON p.product_id = b.product_id
+        JOIN hq_inventory hq ON hq.batch_id = b.batch_id
+        GROUP BY
+        p.product_id,
+        c.category_name,
+        p.product_name,
+        p.hq_supply_price
+        ORDER BY p.product_name
+    </select>
+    <select id="productSelect" parameterType="int" resultType="ProductSelectDto">
+        select p.product_id, c.category_name, p.product_name, p.hq_supply_price from product p
+        join category c on c.category_id = p.category_id
+        where p.product_id = #{product_id}
     </select>
 </mapper>

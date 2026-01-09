@@ -14,7 +14,6 @@
         from store s join owner o
         using(store_id)
     </select>
-
     <select id="StoreDetail" parameterType="int" resultType="StoreDetailDto">
         select store_id, store_name,store_status,commission_rate,owner_name,owner_phone
         from store s join owner o
@@ -55,6 +54,4 @@
         using(store_id)
         where s.store_status = #{status}
     </select>
-
-
 </mapper>

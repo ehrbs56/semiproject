@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.Order_ItemMapper">
+    <insert id="order_ItemInsert" parameterType="Order_ItemDto">
+        <selectKey keyProperty="order_item_id" resultType="int" order="BEFORE">
+            select seq_order_item.nextval from dual
+        </selectKey>
+        insert into order_item values(#{order_item_id},#{order_id},#{product_id},#{order_qty})
+    </insert>
+
+
+</mapper>

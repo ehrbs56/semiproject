@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.demo.mapper.Supply_DetailMapper">
+    <insert id="Supply_DetailInsert" parameterType="Supply_DetailDto">
+        <selectKey keyProperty="supply_detail_id" resultType="int" order="BEFORE">
+            select seq_supply_detail.nextval from dual
+        </selectKey>
+        insert into supply_detail values(#{supply_detail_id},#{supply_id},#{batch_id},#{quantity})
+    </insert>
+</mapper>

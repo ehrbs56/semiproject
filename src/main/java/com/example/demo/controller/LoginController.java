@@ -27,17 +27,13 @@ public class LoginController {
         Map<String, Object> map=new HashMap<>();
         map.put("login_id",id);
         map.put("password",password);
-        LoginDto dto=loginService.login(map);
-        if(dto!=null) {
-            session.setAttribute("login",dto);
-            if(dto.getRole()==0) {
-                return "redirect:/hq/home";
-            }else {
-                return "redirect:/branch/orders";
-            }
-        }else {
+        LoginDto logindto=loginService.login(map);
+        System.out.println("loginDto: " + logindto);
+        if(logindto==null) {
             ra.addFlashAttribute("msg","아이디 또는 비밀번호가 틀렸습니다");
             return "redirect:/home";
         }
+        session.setAttribute("loginDto",logindto);
+        return logindto.getRole() == 0 ? "redirect:/hq/home" : "redirect:/branch/orders";
     }
 }

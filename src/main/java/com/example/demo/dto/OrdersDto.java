@@ -8,11 +8,11 @@ import java.util.Date;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class OrdersListDto {
+public class OrdersDto {
     private int order_id;
+    private int store_id;
     private Date order_date;
-    private String category_name;
-    private int product_id;
-    private String product_name;
-    private int hq_supply_price;
+    private int total_supply_amount;
+    private int commission_amount;
 }
+
