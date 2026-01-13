@@ -3,19 +3,74 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.example.demo.mapper.OrdersMapper">
-    <select id="ordersList" parameterType="int" resultType="OrdersListDto">
-        select o.order_id, o.order_date, c.category_name, p.product_id, p.product_name, p.hq_supply_price from orders o
-        join order_item oi on oi.order_id=o.order_id
-        join product p on p.product_id=oi.product_id
-        join category c on c.category_id=p.category_id
-        order by o.order_id desc
-    </select>
     <insert id="ordersInsert" parameterType="OrdersDto">
         <selectKey keyProperty="order_id" resultType="int" order="BEFORE">
             select seq_orders.nextval from dual
         </selectKey>
         insert into orders values(#{order_id},#{store_id},#{order_date},#{total_supply_amount},#{commission_amount})
     </insert>
+
+    <select id="ordersList" parameterType="int" resultType="OrdersListDto">
+        select o.order_id,o.order_date,c.category_name,p.product_name,cnt.cnt -1 as extra_count
+        from orders o
+        join (
+            select order_id, min(order_item_id) as rep_order_item_id, count(*) as cnt
+            from order_item
+            group by order_id
+        ) cnt on o.order_id = cnt.order_id
+        join order_item oi on oi.order_item_id = cnt.rep_order_item_id
+        join product p on p.product_id = oi.product_id
+        join category c on c.category_id = p.category_id
+        where o.store_id = #{value}
+        order by o.order_date desc
+    </select>
+    <select id="ordersDetail" parameterType="int" resultType="OrdersDetailDto">
+        select
+        oi.order_item_id,
+        p.product_name,
+        c.category_name,
+        oi.order_qty,
+        p.hq_supply_price,
+        (oi.order_qty * p.hq_supply_price) as total_price
+        from order_item oi
+        join product p on p.product_id = oi.product_id
+        join category c on c.category_id = p.category_id
+        where oi.order_id = #{order_id}
+    </select>
+    <select id="ordersHeader" parameterType="int" resultType="OrdersHeaderDto">
+        select order_id, order_date from orders where order_id=#{order_id}
+    </select>
+    <select id="ordersSelect" parameterType="map" resultType="OrdersListDto">
+        select
+        o.order_id,
+        o.order_date,
+        c.category_name,
+        p.product_name,
+        cnt.cnt - 1 as extra_count
+        from orders o
+        join (
+        select order_id, min(order_item_id) as rep_order_item_id, count(*) as cnt
+        from order_item
+        group by order_id
+        ) cnt on o.order_id = cnt.order_id
+        join order_item oi on oi.order_item_id = cnt.rep_order_item_id
+        join product p on p.product_id = oi.product_id
+        join category c on c.category_id = p.category_id
+        where o.store_id = #{store_id}
+
+        <if test="order_date != null and order_date != ''">
+            and TRUNC(o.order_date) = TO_DATE(#{order_date}, 'YYYY-MM-DD')
+        </if>
+        <if test="category_id != null">
+            and c.category_id = #{category_id}
+        </if>
+        <if test="product_id != null">
+            and p.product_id = #{product_id}
+        </if>
+
+        order by o.order_date desc
+    </select>
+
 
 
 </mapper>

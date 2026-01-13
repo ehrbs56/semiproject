@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<th:block th:replace="~{fragments/branchLayout::branchLayout(~{this::header},~{this::body})}">
+    <div th:fragment="header">
+        <h2>발주 내역</h2>
+        <p>요청한 발주 내역을 확인합니다</p>
+    </div>
+    <div th:fragment="body">
+        <div>
+            <div>
+                <h3>조회 조건</h3><hr><br>
+            </div>
+            <div>
+                <label>날짜:</label>
+                <input type="date" id="orderDate">
+
+                <label>카테고리:</label>
+                <select id="categorySelect">
+                    <option value="">전체</option>
+                    <option th:each="c : ${categoryList}" th:value="${c.category_id}" th:text="${c.category_name}"></option>
+                </select>
+
+                <label>상품:</label>
+                <select id="productSelect">
+                    <option value="">전체</option>
+                    <option th:each="p : ${productList}" th:value="${p.product_id}" th:text="${p.product_name}"></option>
+                </select>
+                <button id="searchBtn">조회</button>
+            </div>
+            <div>
+                <h3>발주 목록</h3><hr><br>
+                <table id="ordersTable">
+                    <thead>
+                        <tr>
+                            <th>발주번호</th><th>발주일</th><th>카테고리</th><th>대표상품</th><th>상세</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="order : ${list}">
+                            <td th:text="${order.order_id}"></td>
+                            <td th:text="${#dates.format(order.order_date, 'yyyy_MM_dd')}"></td>
+                            <td th:text="${order.category_name}"></td>
+                            <td th:text="${order.extra_count > 0 ? order.product_name + ' 외 ' + order.extra_count + '건' : order.product_name}"></td>
+                            <td>
+                                <a th:href="@{/branch/orders/ordersDetail(order_id=${order.order_id})}">상세</a>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <script>
+            document.getElementById("searchBtn").addEventListener("click", function(){
+                const order_date = document.getElementById("orderDate").value;
+                const category_id = document.getElementById("categorySelect").value;
+                const product_id = document.getElementById("productSelect").value;
+                
+                const requestData = {};
+                if (order_date && order_date.trim() !== '') {
+                    requestData.order_date = order_date;
+                }
+                if (category_id && category_id.trim() !== '') {
+                    requestData.category_id = category_id;
+                }
+                if (product_id && product_id.trim() !== '') {
+                    requestData.product_id = product_id;
+                }
+                
+                fetch('/branch/orders/select', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    credentials: 'same-origin',
+                    body: JSON.stringify(requestData)
+                })
+                    .then(resp => {
+                        if (resp.redirected) {
+                            window.location.href = resp.url;
+                            return Promise.reject("리다이렉트 발생");
+                        }
+                        if (!resp.ok) {
+                            return resp.text().then(text => {
+                                throw new Error('Network response was not ok: ' + resp.status);
+                            });
+                        }
+                        return resp.json();
+                    })
+                    .then(data => {
+                        if (!Array.isArray(data)) {
+                            alert("응답 데이터 형식이 올바르지 않습니다.");
+                            return;
+                        }
+                        
+                        const tbody = document.querySelector("#ordersTable tbody");
+                        if (!tbody) {
+                            return;
+                        }
+                        
+                        tbody.innerHTML = "";
+                        
+                        if (data.length === 0) {
+                            const tr = document.createElement("tr");
+                            tr.innerHTML = `<td colspan="5" style="text-align: center;">조회 결과가 없습니다.</td>`;
+                            tbody.appendChild(tr);
+                            return;
+                        }
+                        
+                        data.forEach((item) => {
+                            let orderDateFormat = '';
+                            try {
+                                if (item.order_date) {
+                                    if (typeof item.order_date === 'string') {
+                                        const dateStr = item.order_date.split('T')[0];
+                                        orderDateFormat = dateStr.replace(/-/g, '_');
+                                    } else {
+                                        const orderDate = new Date(item.order_date);
+                                        orderDateFormat = `${orderDate.getFullYear()}-${(orderDate.getMonth()+1).toString().padStart(2,'0')}-${orderDate.getDate().toString().padStart(2,'0')}`;
+                                        orderDateFormat = orderDateFormat.replace(/-/g, '_');
+                                    }
+                                }
+                            } catch (e) {
+                                orderDateFormat = item.order_date || '';
+                            }
+                            
+                            const tr = document.createElement("tr");
+                            tr.innerHTML = `
+                                <td>${item.order_id || ''}</td>
+                                <td>${orderDateFormat}</td>
+                                <td>${item.category_name || ''}</td>
+                                <td>${item.extra_count > 0 ? (item.product_name || '') + ' 외 ' + item.extra_count + '건' : (item.product_name || '')}</td>
+                                <td>
+                                    <a href="/branch/orders/ordersDetail?order_id=${item.order_id}">상세</a>
+                                </td>
+                            `;
+                            tbody.appendChild(tr);
+                        });
+                    })
+                    .catch(error => {
+                        if (error.message !== "리다이렉트 발생") {
+                            alert("조회 중 오류가 발생했습니다.");
+                        }
+                    });
+            });
+        </script>
+    </div>
+</th:block>
+</html>

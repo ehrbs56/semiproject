@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -20,9 +21,6 @@ public class OrdersService {
     private final Supply_DetailMapper supply_detailMapper;
     private final Hq_InventoryMapper hq_inventoryMapper;
 
-    public OrdersListDto ordersList(int product_id) {
-        return ordersMapper.ordersList(product_id);
-    }
 
     @Transactional
     public void createOrder(OrdersRequestDto ordersRequestDto, int store_id) {
@@ -93,4 +91,22 @@ public class OrdersService {
         }
 
     }
+
+    public List<OrdersListDto> ordersList(int store_id) {
+        return ordersMapper.ordersList(store_id);
+    }
+
+    public List<OrdersDetailDto> ordersDetail(int order_id) {
+        return ordersMapper.ordersDetail(order_id);
+    }
+
+    public OrdersHeaderDto ordersHeader(int order_id) {
+        return ordersMapper.ordersHeader(order_id);
+    }
+
+    public List<OrdersListDto> ordersSelect(Map<String, Object> map) {
+        return ordersMapper.ordersSelect(map);
+    }
+
+
 }
